@@ -56,15 +56,14 @@
             100% { box-shadow: 0 15px 35px -10px var(--zest-indigo); border-color: #6366f1; }
         }
 
-        @keyframes titleCycle {
+        @keyframes fieryCycle {
             0% { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.3); } 
-            25% { color: #f97316; text-shadow: 0 0 15px rgba(249, 115, 22, 0.4); } 
-            50% { color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.3); } 
+            33% { color: #f97316; text-shadow: 0 0 15px rgba(249, 115, 22, 0.4); } 
+            66% { color: #facc15; text-shadow: 0 0 10px rgba(250, 204, 21, 0.3); } 
             75% { color: #f97316; text-shadow: 0 0 15px rgba(249, 115, 22, 0.4); }
             100% { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.3); } 
         }
 
-        /* Fixed Fire Breathing/Pulse Animation with Center Translation */
         @keyframes fireBreath {
             0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; filter: blur(25px); }
             50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.8; filter: blur(35px); }
@@ -89,7 +88,7 @@
         }
 
         .fiery-text {
-            animation: titleCycle 5s infinite ease-in-out;
+            animation: titleCycle 6s infinite ease-in-out;
         }
 
         .logo-fire-aura {
@@ -344,18 +343,30 @@
 
         async function loadShopData() {
             try {
-                const [ingredientsRes, dropsRes] = await Promise.all([fetch('ingredients.json'), fetch('drops.json')]);
-                if (!ingredientsRes.ok || !dropsRes.ok) throw new Error("Fetch failed");
-                processJsonData(await ingredientsRes.json(), await dropsRes.json());
+                const [ingredientsRes, dropsRes, htoiRes] = await Promise.all([
+                    fetch('ingredients.json'), 
+                    fetch('drops.json'),
+                    fetch('htoi.json')
+                ]);
+                if (!ingredientsRes.ok || !dropsRes.ok || !htoiRes.ok) throw new Error("Connection unstable");
+                processJsonData(await ingredientsRes.json(), await dropsRes.json(), await htoiRes.json());
             } catch (error) { console.error(error); showToast("Link to Mainframe Severed"); }
         }
 
-        function processJsonData(ingredients, dropsMap) {
+        function processJsonData(ingredients, dropsMap, htoiArray) {
             const processed = [];
             const normIngredients = {};
             Object.keys(ingredients).forEach(k => normIngredients[k.trim().toLowerCase()] = { ...ingredients[k], originalName: k });
             const normDrops = {};
             Object.keys(dropsMap).forEach(k => normDrops[k.trim().toLowerCase()] = dropsMap[k]);
+            
+            // Map for HTOI supplemental data
+            const normHtoi = {};
+            if (Array.isArray(htoiArray)) {
+                htoiArray.forEach(item => {
+                    if (item.name) normHtoi[item.name.trim().toLowerCase()] = item;
+                });
+            }
 
             const sharedTelemetry = {}; 
             Object.values(dropsMap).forEach(dropArray => {
@@ -379,38 +390,70 @@
                 });
             });
 
-            const allKeys = new Set([...Object.keys(normIngredients), ...Object.keys(normDrops)]);
+            const allKeys = new Set([...Object.keys(normIngredients), ...Object.keys(normDrops), ...Object.keys(normHtoi)]);
             for (const key of allKeys) {
                 const ingData = normIngredients[key] || {};
                 const dropEntries = normDrops[key] || [];
+                const hData = normHtoi[key] || {};
+
                 const item = {
-                    name: ingData.originalName || Object.keys(dropsMap).find(orig => orig.trim().toLowerCase() === key) || key,
+                    name: ingData.originalName || hData.name || Object.keys(dropsMap).find(orig => orig.trim().toLowerCase() === key) || key,
                     tier: ingData.tier !== undefined ? Number(ingData.tier) : -1,
-                    level: Number(ingData.lvl) || 0,
+                    level: Number(ingData.lvl || hData.level) || 0,
                     professions: ingData.profs || [],
                     stats: ingData.stats || [],
                     drops: [], searchStr: "" 
                 };
 
+                const combinedSources = new Map();
+
+                // 1. Process drops.json data
                 if (Array.isArray(dropEntries)) {
-                    const sourceMap = new Map();
                     dropEntries.forEach(d => {
                         const sName = (d.name || "Unknown Source").trim();
                         const sLoc = (d.details ? d.details.location || "" : "").trim();
                         const sKey = `${sName}|${sLoc}`;
-                        if (!sourceMap.has(sKey)) {
-                            sourceMap.set(sKey, {
+                        if (!combinedSources.has(sKey)) {
+                            combinedSources.set(sKey, {
                                 name: sName, location: sLoc,
                                 mobKey: sName.toLowerCase(),
                                 screenshots: d.details ? (d.details.screenshots || "") : ""
                             });
                         }
                     });
-                    item.drops = Array.from(sourceMap.values()).map(source => ({
-                        ...source,
-                        allCoords: sharedTelemetry[source.mobKey] || []
-                    }));
                 }
+
+                // 2. Process htoi.json supplemental data
+                // Loop through all keys in the htoi object that aren't metadata
+                const metaFields = ['id', 'name', 'level'];
+                Object.keys(hData).forEach(field => {
+                    if (!metaFields.includes(field) && hData[field]) {
+                        try {
+                            const entries = JSON.parse(hData[field]);
+                            if (Array.isArray(entries)) {
+                                entries.forEach(entry => {
+                                    const sName = (entry.name || entry.description || field.toUpperCase()).trim();
+                                    const sLoc = (entry.location || "").trim();
+                                    const sKey = `${sName}|${sLoc}`;
+                                    if (!combinedSources.has(sKey)) {
+                                        combinedSources.set(sKey, {
+                                            name: sName, location: sLoc,
+                                            mobKey: sName.toLowerCase(),
+                                            screenshots: ""
+                                        });
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            // If it's not valid JSON, treat it as a raw string if it's a field of interest
+                        }
+                    }
+                });
+
+                item.drops = Array.from(combinedSources.values()).map(source => ({
+                    ...source,
+                    allCoords: sharedTelemetry[source.mobKey] || []
+                }));
 
                 item.searchStr = [item.name, ...item.professions, ...item.stats.map(s => s.label), ...item.drops.map(d => d.name + ' ' + d.location)].join(' ').toLowerCase();
                 processed.push(item);
