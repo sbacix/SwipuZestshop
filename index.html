@@ -206,9 +206,9 @@
                     <i class="fas fa-database text-white text-3xl"></i>
                 </div>
                 <h1 class="text-3xl lg:text-6xl font-black tracking-tighter leading-tight text-custom-main uppercase">
-                    The Great <span class="animated-title">Database</span>
+                    Brought To You By <span class="animated-title">Imperial</span>
                 </h1>
-                <p class="text-[11px] font-black text-indigo-400 uppercase tracking-[0.5em] mt-1">Property of Imperial</p>
+                <p class="text-[11px] font-black text-indigo-400 uppercase tracking-[0.5em] mt-1">The Great Database</p>
             </div>
 
             <!-- Dashboard Interaction Row -->
@@ -345,6 +345,15 @@
             allProfs: [], allPosStats: [], allNegStats: []
         };
 
+        // Utility to prevent heavy re-renders during rapid typing
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
         async function loadShopData() {
             try {
                 const [ingredientsRes, dropsRes] = await Promise.all([
@@ -361,22 +370,15 @@
             }
         }
 
-        /**
-         * Normalizes data merging to handle whitespace and casing issues in JSON keys
-         * and implements coordinate sharing between mobs.
-         */
         function processJsonData(ingredients, dropsMap) {
             const processed = [];
-            
-            // 1. Create normalized maps for reliable lookup
             const normIngredients = {};
             Object.keys(ingredients).forEach(k => normIngredients[k.trim().toLowerCase()] = { ...ingredients[k], originalName: k });
             
             const normDrops = {};
             Object.keys(dropsMap).forEach(k => normDrops[k.trim().toLowerCase()] = dropsMap[k]);
 
-            // 2. Build a Global Telemetry Database (Shared Coords across all items by Mob Name)
-            const sharedTelemetry = {}; // Map of mobName -> Array of coordinate objects
+            const sharedTelemetry = {}; 
 
             Object.values(dropsMap).forEach(dropArray => {
                 if (!Array.isArray(dropArray)) return;
@@ -387,14 +389,17 @@
                     
                     if (d.details && d.details.coords) {
                         const rawCoords = d.details.coords;
-                        const checkNonZero = (c) => Number(c.x) !== 0 || Number(c.y) !== 0 || Number(c.z) !== 0;
+                        const checkNonZero = (c) => Number(c.x) !== 0 || Number(c.z) !== 0;
 
                         const addCoord = (c) => {
                             if (checkNonZero(c)) {
-                                const coordStr = `${Number(c.x)},${Number(c.y)},${Number(c.z)}`;
-                                // Check for existing to avoid duplicates
+                                // Logic: Condition Y values. If undefined/empty, treat as null.
+                                const cleanY = (c.y !== undefined && c.y !== null && c.y !== "") ? Number(c.y) : null;
+                                const coordObj = { x: Number(c.x), y: cleanY, z: Number(c.z) };
+                                const coordStr = `${coordObj.x},${coordObj.y},${coordObj.z}`;
+                                
                                 if (!sharedTelemetry[mobKey].find(existing => `${existing.x},${existing.y},${existing.z}` === coordStr)) {
-                                    sharedTelemetry[mobKey].push({ x: Number(c.x), y: Number(c.y), z: Number(c.z) });
+                                    sharedTelemetry[mobKey].push(coordObj);
                                 }
                             }
                         };
@@ -405,7 +410,6 @@
                 });
             });
 
-            // 3. Unified key set from both files
             const allKeys = new Set([
                 ...Object.keys(normIngredients),
                 ...Object.keys(normDrops)
@@ -428,8 +432,6 @@
                     item.drops = dropEntries.map(d => {
                         let loc = d.details ? (d.details.location || "") : "";
                         let screenshots = d.details ? (d.details.screenshots || "") : "";
-                        
-                        // Handshake Logic: Pull coordinates from the shared telemetry database
                         const mobKey = (d.name || "").trim().toLowerCase();
                         let validCoords = sharedTelemetry[mobKey] || [];
 
@@ -539,7 +541,7 @@
                             </div>
 
                             <div class="space-y-1.5">
-                                <p class="text-[8px] font-black text-custom-dim uppercase tracking-widest border-b border-custom pb-1 mb-1">Telemetry Sources</p>
+                                <p class="text-[8px] font-black text-custom-dim uppercase tracking-widest border-b border-custom pb-1 mb-1">Last Seen</p>
                                 ${item.drops.length === 0 ? `<p class="text-[10px] italic text-custom-dim opacity-40">No sources found.</p>` : item.drops.map(drop => {
                                     const mainScreenshot = drop.screenshots ? drop.screenshots.split(',')[0].trim() : null;
                                     return `
@@ -555,15 +557,18 @@
                                                 </a>
                                             ` : ''}
                                         </div>
-                                        ${drop.allCoords.map(c => `
+                                        ${drop.allCoords.map(c => {
+                                            // Handle display: if Y is null, only show X, Z
+                                            const displayLabel = (c.y !== null && !isNaN(c.y)) ? `${c.x}, ${c.y}, ${c.z}` : `${c.x}, ${c.z}`;
+                                            return `
                                             <div 
-                                                onclick="copyToClipboard('${c.x}', '${c.y}', '${c.z}')"
+                                                onclick="copyToClipboard('${c.x}', ${c.y}, '${c.z}')"
                                                 class="zest-btn flex items-center justify-center gap-2 bg-indigo-600 !border-indigo-400 !text-white hover:bg-indigo-500 px-3 py-2 rounded-lg cursor-pointer shadow-md group mt-1"
                                             >
                                                 <i class="fas fa-crosshairs text-base group-hover:rotate-90 transition-transform"></i>
-                                                <span class="font-black text-[12px] font-mono tracking-widest truncate">${c.x}, ${c.y}, ${c.z}</span>
+                                                <span class="font-black text-[12px] font-mono tracking-widest truncate">${displayLabel}</span>
                                             </div>
-                                        `).join('')}
+                                        `;}).join('')}
                                     </div>
                                 `;}).join('')}
                             </div>
@@ -599,7 +604,11 @@
         }
 
         function copyToClipboard(x, y, z) {
-            const command = `/compass ${x}, ${y}, ${z}`;
+            // Logic: if y is null, prefix /compass x, z. Else x, y, z.
+            const command = (y !== 'null' && y !== null && !isNaN(y)) 
+                ? `/compass ${x}, ${y}, ${z}` 
+                : `/compass ${x}, ${z}`;
+
             const ta = document.createElement("textarea");
             ta.value = command; ta.style.position = "fixed"; ta.style.left = "-9999px";
             document.body.appendChild(ta); ta.select();
@@ -694,7 +703,17 @@
                     document.getElementById('mainHeader').classList.remove('compact');
                 }
             });
-            document.getElementById('globalSearch').addEventListener('input', e => { STATE.search = e.target.value; render(); });
+
+            // Debounced Search listener to fix input lag
+            const performSearch = debounce((val) => {
+                STATE.search = val;
+                render();
+            }, 250);
+
+            document.getElementById('globalSearch').addEventListener('input', e => { 
+                performSearch(e.target.value); 
+            });
+
             document.getElementById('minLevel').addEventListener('input', e => { STATE.minLv = parseInt(e.target.value || 0); render(); });
             document.getElementById('maxLevel').addEventListener('input', e => { STATE.maxLv = parseInt(e.target.value || 115); render(); });
             document.getElementById('posStat1').addEventListener('change', e => { STATE.posStat1 = e.target.value; render(); });
