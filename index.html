@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Swipu was in the Epstein Files</title>
+    <title>Swipu's Zestshop</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -12,25 +12,44 @@
         :root {
             --bg-main: #121214; 
             --bg-card: #1c1c1f; 
+            --bg-input: #09090b;
+            --text-main: #ececec;
+            --text-dim: #71717a;
+            --border-main: #2d2d31;
+            
             --zest-indigo: rgba(99, 102, 241, 0.5);
             --zest-purple: rgba(168, 85, 247, 0.5);
             --zest-cyan: rgba(34, 211, 238, 0.5);
         }
 
+        body.light {
+            --bg-main: #f4f4f5; 
+            --bg-card: #ffffff; 
+            --bg-input: #fafafa;
+            --text-main: #18181b;
+            --text-dim: #a1a1aa;
+            --border-main: #e4e4e7;
+            
+            --zest-indigo: rgba(99, 102, 241, 0.2);
+            --zest-purple: rgba(168, 85, 247, 0.2);
+            --zest-cyan: rgba(34, 211, 238, 0.2);
+        }
+
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: var(--bg-main);
-            color: #ececec;
+            color: var(--text-main);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-            background: #121214;
+            background: var(--bg-main);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #2d2d31;
+            background: var(--border-main);
             border-radius: 10px;
         }
 
@@ -54,8 +73,8 @@
         }
 
         .zest-card {
-            background: #1c1c1f;
-            border: 1px solid #2d2d31;
+            background: var(--bg-card);
+            border: 1px solid var(--border-main);
             transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
             position: relative;
         }
@@ -71,9 +90,25 @@
         }
 
         .glass-header {
-            background: rgba(18, 18, 20, 0.95);
+            background: var(--bg-main);
             backdrop-filter: blur(16px);
-            border-bottom: 1px solid #2d2d31;
+            border-bottom: 1px solid var(--border-main);
+            opacity: 0.98;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Compact Header Styles on Scroll */
+        header.compact {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        header.compact .branding-large {
+            display: none;
+        }
+
+        header.compact .branding-small {
+            display: flex;
         }
 
         #filterDrawer {
@@ -105,8 +140,8 @@
         #toast {
             visibility: hidden;
             min-width: 280px;
-            background: #1c1c1f;
-            color: #fff;
+            background: var(--bg-card);
+            color: var(--text-main);
             text-align: center;
             border-radius: 12px;
             padding: 16px;
@@ -117,7 +152,7 @@
             bottom: 40px;
             font-size: 14px;
             font-weight: 800;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             border: 1px solid #4f46e5;
             opacity: 0;
             transition: opacity 0.3s, bottom 0.3s;
@@ -130,11 +165,15 @@
         }
 
         .zest-btn {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-main);
+            color: var(--text-main);
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .zest-btn:hover {
-            filter: brightness(1.2);
+            filter: brightness(1.1);
             transform: scale(1.02);
+            border-color: #6366f1;
         }
 
         .interest-toggle.active {
@@ -142,42 +181,62 @@
             border-color: #6366f1;
             color: white;
         }
+
+        .bg-custom-main { background-color: var(--bg-main); }
+        .bg-custom-card { background-color: var(--bg-card); }
+        .bg-custom-input { background-color: var(--bg-input); }
+        .border-custom { border-color: var(--border-main); }
+        .text-custom-main { color: var(--text-main); }
+        .text-custom-dim { color: var(--text-dim); }
     </style>
 </head>
 <body class="min-h-screen custom-scrollbar pb-20">
 
     <div id="toast">Copied Compass Command!</div>
 
-    <header class="sticky top-0 z-50 glass-header">
-        <div class="max-w-[1600px] mx-auto px-6 py-6">
-            <!-- Main Header Grid -->
+    <header id="mainHeader" class="sticky top-0 z-50 glass-header">
+        <div class="max-w-[1700px] mx-auto px-6 py-6 transition-all duration-300" id="headerContent">
+            
+            <!-- Branding Row (Large - Only visible when at top) -->
+            <div class="flex flex-col items-center text-center mb-6 branding-large">
+                <div class="bg-gradient-to-tr from-indigo-500 to-cyan-400 p-3 rounded-2xl shadow-2xl mb-2">
+                    <i class="fas fa-lemon text-white text-3xl"></i>
+                </div>
+                <h1 class="text-3xl lg:text-5xl font-black tracking-tighter leading-tight text-custom-main">
+                    Swipu has been found in the <span class="animated-title uppercase">Epstein Files</span>
+                </h1>
+                <p class="text-[10px] font-bold text-custom-dim uppercase tracking-[0.4em] mt-1">And We Forgive him</p>
+            </div>
+
+            <!-- Dashboard Interaction Row -->
             <div class="grid grid-cols-1 lg:grid-cols-3 items-center gap-6">
                 
-                <!-- Left: Search -->
-                <div class="relative order-2 lg:order-1">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-base"></i>
-                    <input 
-                        type="text" 
-                        id="globalSearch"
-                        placeholder="Search for ingredients..."
-                        class="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-zinc-100 placeholder:text-zinc-600"
-                    >
-                </div>
-
-                <!-- Center: Branding (Centered & Bigger Title) -->
-                <div class="flex flex-col items-center text-center order-1 lg:order-2">
-                    <div class="bg-gradient-to-tr from-indigo-500 to-cyan-400 p-3 rounded-2xl shadow-2xl mb-2">
-                        <i class="fas fa-lemon text-white text-3xl"></i>
+                <!-- Left: Branding Small (Only visible on scroll) & Search -->
+                <div class="flex items-center gap-4 order-2 lg:order-1">
+                    <div class="hidden branding-small items-center gap-2 shrink-0">
+                        <i class="fas fa-lemon text-indigo-500 text-xl"></i>
+                        <span class="text-xs font-black uppercase animated-title hidden sm:inline">Swipu's Zest</span>
                     </div>
-                    <h1 class="text-3xl lg:text-5xl font-black tracking-tighter leading-tight text-white">
-                        Swipu has been found in the <span class="animated-title uppercase">Epstein files</span>
-                    </h1>
-                    <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.4em] mt-1">But we forgive him </3</p>
+                    <div class="relative flex-1">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-base"></i>
+                        <input 
+                            type="text" 
+                            id="globalSearch"
+                            placeholder="Search ingredients..."
+                            class="w-full bg-custom-input border border-custom rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm text-custom-main placeholder:text-zinc-500"
+                        >
+                    </div>
                 </div>
 
-                <!-- Right: Dashboard Toggle -->
-                <div class="flex justify-end order-3">
-                    <button id="toggleFilters" class="zest-btn flex items-center gap-3 px-6 py-3.5 bg-zinc-900 border border-zinc-800 rounded-xl font-black text-sm uppercase tracking-widest text-zinc-300">
+                <!-- Center Placeholder (for balancing) -->
+                <div class="hidden lg:block lg:order-2 branding-large"></div>
+
+                <!-- Right: Theme & Dashboard Toggles -->
+                <div class="flex justify-end items-center gap-3 order-3">
+                    <button id="themeToggle" class="zest-btn flex items-center justify-center w-12 h-12 rounded-xl text-indigo-500 shadow-sm" title="Toggle Theme">
+                        <i class="fas fa-moon text-lg" id="themeIcon"></i>
+                    </button>
+                    <button id="toggleFilters" class="zest-btn flex items-center gap-3 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest whitespace-nowrap">
                         <i class="fas fa-sliders-h text-indigo-500"></i>
                         <span>Dashboard</span>
                         <i id="chevron" class="fas fa-chevron-down text-[10px] ml-1 transition-transform"></i>
@@ -186,52 +245,45 @@
             </div>
 
             <!-- Drawer (Dashboard) -->
-            <div id="filterDrawer" class="mt-6 border-t border-zinc-800">
+            <div id="filterDrawer" class="mt-6 border-t border-custom">
                 <div class="py-8 space-y-8">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <!-- Level Range -->
                         <div class="space-y-4">
-                            <label class="block text-xs font-black text-zinc-500 uppercase tracking-widest">Level Range</label>
+                            <label class="block text-xs font-black text-custom-dim uppercase tracking-widest">Level Range</label>
                             <div class="flex items-center gap-3">
-                                <input type="number" id="minLevel" value="0" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-sm font-bold outline-none focus:border-indigo-500">
-                                <span class="text-zinc-700 font-bold">—</span>
-                                <input type="number" id="maxLevel" value="100" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-sm font-bold outline-none focus:border-indigo-500">
+                                <input type="number" id="minLevel" value="0" class="w-full bg-custom-input border border-custom rounded-lg py-3 px-4 text-sm font-bold outline-none focus:border-indigo-500">
+                                <span class="text-custom-dim font-bold">—</span>
+                                <input type="number" id="maxLevel" value="100" class="w-full bg-custom-input border border-custom rounded-lg py-3 px-4 text-sm font-bold outline-none focus:border-indigo-500">
                             </div>
                         </div>
-
-                        <!-- Tiers -->
                         <div class="space-y-4">
-                            <label class="block text-xs font-black text-zinc-500 uppercase tracking-widest">Ingredient Tiers</label>
+                            <label class="block text-xs font-black text-custom-dim uppercase tracking-widest">Ingredient Tiers</label>
                             <div class="flex gap-2" id="tierFilters">
-                                <button data-tier="1" class="tier-btn flex-1 py-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs font-black uppercase tracking-widest">Tier 1</button>
-                                <button data-tier="2" class="tier-btn flex-1 py-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs font-black uppercase tracking-widest">Tier 2</button>
-                                <button data-tier="3" class="tier-btn flex-1 py-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs font-black uppercase tracking-widest">Tier 3</button>
+                                <button data-tier="1" class="tier-btn flex-1 py-3 rounded-lg border border-custom bg-custom-input text-xs font-black uppercase tracking-widest">Tier 1</button>
+                                <button data-tier="2" class="tier-btn flex-1 py-3 rounded-lg border border-custom bg-custom-input text-xs font-black uppercase tracking-widest">Tier 2</button>
+                                <button data-tier="3" class="tier-btn flex-1 py-3 rounded-lg border border-custom bg-custom-input text-xs font-black uppercase tracking-widest">Tier 3</button>
                             </div>
                         </div>
-
-                        <!-- Quick Action: Items of Interest -->
                         <div class="space-y-4">
-                            <label class="block text-xs font-black text-zinc-500 uppercase tracking-widest text-indigo-400">Curated Filters</label>
-                            <button id="interestToggle" class="interest-toggle zest-btn w-full py-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs font-black uppercase tracking-widest text-zinc-400">
+                            <label class="block text-xs font-black text-custom-dim uppercase tracking-widest text-indigo-400">Curated Filters</label>
+                            <button id="interestToggle" class="interest-toggle zest-btn w-full py-3 rounded-lg text-xs font-black uppercase tracking-widest">
                                 <i class="fas fa-star mr-2"></i> Items of Interest
                             </button>
                         </div>
                     </div>
-
-                    <!-- Statistics & Professions -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4 border-t border-custom border-opacity-30">
                         <div class="space-y-4">
-                            <label class="block text-xs font-black text-zinc-500 uppercase tracking-widest">Professions</label>
+                            <label class="block text-xs font-black text-custom-dim uppercase tracking-widest">Professions</label>
                             <div id="professionFilters" class="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-4">
-                                <label class="block text-xs font-black text-zinc-500 uppercase tracking-widest text-emerald-500">Positive Stats</label>
-                                <select id="posStat1" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-xs font-black text-emerald-500 outline-none"><option value="">Stat 1</option></select>
+                                <label class="block text-xs font-black text-emerald-500 uppercase tracking-widest">Positive Stats</label>
+                                <select id="posStat1" class="w-full bg-custom-input border border-custom rounded-lg py-3 px-4 text-xs font-black text-emerald-500 outline-none"><option value="">Stat 1</option></select>
                             </div>
                             <div class="space-y-4">
-                                <label class="block text-xs font-black text-zinc-500 uppercase tracking-widest text-rose-500">Negative Stats</label>
-                                <select id="negStat1" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-xs font-black text-rose-500 outline-none"><option value="">Stat 1</option></select>
+                                <label class="block text-xs font-black text-rose-500 uppercase tracking-widest">Negative Stats</label>
+                                <select id="negStat1" class="w-full bg-custom-input border border-custom rounded-lg py-3 px-4 text-xs font-black text-rose-500 outline-none"><option value="">Stat 1</option></select>
                             </div>
                         </div>
                     </div>
@@ -244,22 +296,19 @@
         <!-- Active Tags -->
         <div id="activeTags" class="flex flex-wrap gap-2 mb-10 min-h-[30px]"></div>
 
-        <!-- Ingredient Grid (Adjusted look: 4 Columns) -->
+        <!-- Ingredient Grid (4 Columns) -->
         <div id="ingredientGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
 
-        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-48 text-zinc-700">
-            <div class="w-24 h-24 bg-zinc-800 rounded-3xl flex items-center justify-center mb-6 shadow-xl border border-zinc-700">
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-48 text-custom-dim">
+            <div class="w-24 h-24 bg-custom-input rounded-3xl flex items-center justify-center mb-6 shadow-xl border border-custom">
                 <i class="fas fa-ghost text-4xl opacity-30"></i>
             </div>
-            <p class="text-xl font-black uppercase tracking-widest mb-2 text-zinc-400">No Ingredients Match</p>
+            <p class="text-xl font-black uppercase tracking-widest mb-2">No Ingredients Match</p>
             <button onclick="clearAllFilters()" class="text-indigo-500 hover:text-indigo-400 text-xs font-black uppercase tracking-[0.3em] underline">Reset Inventory</button>
         </div>
     </main>
 
     <script>
-        /**
-         * Curated Items of Interest hardcoding list.
-         */
         const INTEREST_NAMES = new Set([
             "Adamastor's Faceplate", "Ancient Heart", "Archaic Medallion", "Bat Heart", "Borange Fluff",
             "Cat Food", "Cataratite", "Coalescence", "Colossus' Shard", "Contraband Absinthe",
@@ -282,7 +331,7 @@
 
         const STATE = {
             search: "", minLv: 0, maxLv: 100, tiers: new Set(), profs: new Set(),
-            posStat1: "", negStat1: "", interestOnly: false,
+            posStat1: "", negStat1: "", interestOnly: false, theme: "dark",
             allProfs: [], allPosStats: [], allNegStats: []
         };
 
@@ -349,7 +398,7 @@
 
         function initDynamicUI() {
             const profContainer = document.getElementById('professionFilters');
-            profContainer.innerHTML = STATE.allProfs.map(p => `<button data-prof="${p}" class="prof-chip zest-btn px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] font-black text-zinc-500 uppercase tracking-widest whitespace-nowrap">${p}</button>`).join('');
+            profContainer.innerHTML = STATE.allProfs.map(p => `<button data-prof="${p}" class="prof-chip zest-btn px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap">${p}</button>`).join('');
             
             const ps = document.getElementById('posStat1');
             const ns = document.getElementById('negStat1');
@@ -380,53 +429,53 @@
             } else {
                 document.getElementById('emptyState').classList.add('hidden');
                 grid.innerHTML = data.map((item, idx) => `
-                    <div class="zest-card rounded-[2rem] p-5 flex flex-col gap-5">
+                    <div class="zest-card rounded-[1.5rem] p-4 flex flex-col gap-4 shadow-sm">
                         <div class="flex justify-between items-start">
                             <div class="overflow-hidden">
-                                <h3 class="text-base font-black text-white leading-tight uppercase tracking-tight mb-1.5 truncate">${item.name}</h3>
+                                <h3 class="text-sm font-black text-custom-main leading-tight uppercase tracking-tight mb-1 truncate">${item.name}</h3>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-md leading-none">LV ${item.level}</span>
+                                    <span class="text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded leading-none">LV ${item.level}</span>
                                     <div class="flex gap-0.5 text-amber-500">
-                                        ${Array(item.tier).fill(0).map(() => `<i class="fas fa-star text-[10px]"></i>`).join('')}
+                                        ${Array(item.tier).fill(0).map(() => `<i class="fas fa-star text-[8px]"></i>`).join('')}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="space-y-4">
-                            <div class="space-y-1.5">
-                                <p class="text-[9px] font-black text-zinc-600 uppercase tracking-widest border-b border-zinc-800 pb-1.5 mb-1.5">Properties</p>
+                        <div class="space-y-3">
+                            <div class="space-y-1">
+                                <p class="text-[8px] font-black text-custom-dim uppercase tracking-widest border-b border-custom pb-1 mb-1">Properties</p>
                                 ${item.stats.map(s => `
-                                    <div class="flex justify-between text-[13px] font-bold py-1 border-b border-zinc-800/20 last:border-0">
-                                        <span class="text-zinc-500">${s.label}</span>
+                                    <div class="flex justify-between text-[12px] font-bold py-0.5 border-b border-custom border-opacity-20 last:border-0">
+                                        <span class="text-custom-dim">${s.label}</span>
                                         <span class="${s.pos ? 'stat-pos' : 'stat-neg'}">${s.value}</span>
                                     </div>
                                 `).join('')}
                             </div>
 
-                            <div class="space-y-2">
-                                <p class="text-[9px] font-black text-zinc-600 uppercase tracking-widest border-b border-zinc-800 pb-1.5 mb-1.5">Location</p>
-                                ${item.drops.length === 0 ? `<p class="text-[11px] italic text-zinc-800">No telemetry data.</p>` : item.drops.map(drop => `
-                                    <div class="space-y-2 bg-zinc-900/40 p-4 rounded-xl border border-zinc-800/40">
+                            <div class="space-y-1.5">
+                                <p class="text-[8px] font-black text-custom-dim uppercase tracking-widest border-b border-custom pb-1 mb-1">Source Telemetry</p>
+                                ${item.drops.length === 0 ? `<p class="text-[10px] italic text-custom-dim opacity-40">No telemetry.</p>` : item.drops.map(drop => `
+                                    <div class="space-y-2 bg-custom-main bg-opacity-30 p-3 rounded-lg border border-custom border-opacity-30">
                                         <div>
-                                            <p class="text-zinc-200 font-bold text-sm truncate">${drop.name}</p>
-                                            <p class="text-zinc-600 text-[9px] font-bold uppercase tracking-tight truncate">${drop.location}</p>
+                                            <p class="text-custom-main font-bold text-xs truncate leading-tight">${drop.name}</p>
+                                            <p class="text-custom-dim text-[8px] font-bold uppercase tracking-tight truncate">${drop.location}</p>
                                         </div>
                                         <div 
                                             onclick="copyToClipboard('${drop.coords.x}', '${drop.coords.z}')"
-                                            class="zest-btn flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2.5 rounded-lg cursor-pointer shadow-md border border-indigo-400 group"
+                                            class="zest-btn flex items-center justify-center gap-2 bg-indigo-600 !border-indigo-400 !text-white hover:bg-indigo-500 px-3 py-2 rounded-lg cursor-pointer shadow-md group"
                                         >
                                             <i class="fas fa-crosshairs text-base group-hover:rotate-90 transition-transform"></i>
-                                            <span class="font-black text-[10px] font-mono tracking-widest truncate">/compass ${drop.coords.x}, ${drop.coords.z}</span>
+                                            <span class="font-black text-[12px] font-mono tracking-widest truncate">/compass ${drop.coords.x}, ${drop.coords.z}</span>
                                         </div>
                                     </div>
                                 `).join('')}
                             </div>
                         </div>
 
-                        <div class="mt-auto pt-3 border-t border-zinc-800/50 flex flex-wrap gap-1.5">
+                        <div class="mt-auto pt-2 border-t border-custom border-opacity-50 flex flex-wrap gap-1">
                             ${item.professions.map(p => `
-                                <span class="text-[8px] text-zinc-600 font-black px-2 py-1 rounded-md bg-zinc-950 border border-zinc-800 uppercase tracking-widest">${p}</span>
+                                <span class="text-[7px] text-custom-dim font-black px-1.5 py-0.5 rounded-md bg-custom-input border border-custom uppercase tracking-tighter">${p}</span>
                             `).join('')}
                         </div>
                     </div>
@@ -445,7 +494,7 @@
             STATE.profs.forEach(p => tags.push({ id: `prof-${p}`, label: p }));
 
             container.innerHTML = tags.map(t => `
-                <div class="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md">
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-custom-card border border-custom text-custom-main rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md">
                     ${t.label}
                     <button onclick="removeFilter('${t.id}')" class="hover:text-indigo-400 transition-colors"><i class="fas fa-times"></i></button>
                 </div>
@@ -467,6 +516,22 @@
             setTimeout(() => t.classList.remove("show"), 2500);
         }
 
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.getElementById('themeIcon');
+            if (STATE.theme === "dark") {
+                STATE.theme = "light";
+                body.classList.add('light');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                STATE.theme = "dark";
+                body.classList.remove('light');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+
         function removeFilter(id) {
             if (id === 'search') { STATE.search = ""; document.getElementById('globalSearch').value = ""; }
             else if (id === 'interest') { STATE.interestOnly = false; document.getElementById('interestToggle').classList.remove('active'); }
@@ -486,11 +551,40 @@
             render();
         }
 
+        // --- NEW SCROLL LOGIC ---
+        function handleScroll() {
+            const header = document.getElementById('mainHeader');
+            const content = document.getElementById('headerContent');
+            const drawer = document.getElementById('filterDrawer');
+            const chevron = document.getElementById('chevron');
+
+            if (window.scrollY > 50) {
+                header.classList.add('compact');
+                content.classList.remove('py-6');
+                content.classList.add('py-2');
+                // Auto-close drawer on scroll to keep it thin
+                if (drawer.classList.contains('open')) {
+                    drawer.classList.remove('open');
+                    chevron.style.transform = 'rotate(0deg)';
+                }
+            } else {
+                header.classList.remove('compact');
+                content.classList.remove('py-2');
+                content.classList.add('py-6');
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             loadShopData();
+            window.addEventListener('scroll', handleScroll);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
             document.getElementById('toggleFilters').addEventListener('click', () => {
                 const isOpen = document.getElementById('filterDrawer').classList.toggle('open');
                 document.getElementById('chevron').style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+                // If opening at top, make sure header isn't compact
+                if (isOpen && window.scrollY < 50) {
+                    document.getElementById('mainHeader').classList.remove('compact');
+                }
             });
             document.getElementById('globalSearch').addEventListener('input', e => { STATE.search = e.target.value; render(); });
             document.getElementById('minLevel').addEventListener('input', e => { STATE.minLv = parseInt(e.target.value || 0); render(); });
