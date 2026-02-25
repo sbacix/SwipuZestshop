@@ -3,121 +3,565 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WynnAtlas Lite - Ingredient Explorer</title>
+    <title>Swipu's Zestshop</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Nunito', sans-serif; background-color: #0f1115; color: #e2e8f0; }
-        .tier-3 { color: #22d3ee; border-color: rgba(34, 211, 238, 0.3); background: rgba(34, 211, 238, 0.05); }
-        .tier-2 { color: #f472b6; border-color: rgba(244, 114, 182, 0.3); background: rgba(244, 114, 182, 0.05); }
-        .tier-1 { color: #facc15; border-color: rgba(250, 204, 21, 0.3); background: rgba(250, 204, 21, 0.05); }
-        .tier-0 { color: #94a3b8; border-color: rgba(148, 163, 184, 0.3); background: rgba(148, 163, 184, 0.05); }
-        .search-shadow { box-shadow: 0 0 40px -10px rgba(34, 211, 238, 0.2); }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --bg-main: #121214; 
+            --bg-card: #1c1c1f; 
+            --zest-indigo: rgba(99, 102, 241, 0.5);
+            --zest-purple: rgba(168, 85, 247, 0.5);
+            --zest-cyan: rgba(34, 211, 238, 0.5);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-main);
+            color: #ececec;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #121214;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #2d2d31;
+            border-radius: 10px;
+        }
+
+        .stat-pos { color: #10b981; }
+        .stat-neg { color: #f43f5e; }
+
+        /* Chroma Glow Cycle Animation */
+        @keyframes glowCycle {
+            0% { box-shadow: 0 12px 25px -8px var(--zest-indigo); border-color: #6366f1; }
+            33% { box-shadow: 0 12px 25px -8px var(--zest-purple); border-color: #a855f7; }
+            66% { box-shadow: 0 12px 25px -8px var(--zest-cyan); border-color: #22d3ee; }
+            100% { box-shadow: 0 12px 25px -8px var(--zest-indigo); border-color: #6366f1; }
+        }
+
+        .zest-card {
+            background: #1c1c1f;
+            border: 1px solid #2d2d31;
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+        }
+
+        .zest-card:hover {
+            transform: translateY(-6px);
+            animation: glowCycle 4s infinite linear;
+            z-index: 10;
+        }
+
+        .glass-header {
+            background: rgba(18, 18, 20, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #2d2d31;
+        }
+
+        #filterDrawer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out, opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        #filterDrawer.open {
+            max-height: 1000px;
+            opacity: 1;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2352525b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 0.8rem;
+        }
+
+        #toast {
+            visibility: hidden;
+            min-width: 200px;
+            background: #1c1c1f;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 10px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 30px;
+            font-size: 11px;
+            font-weight: 700;
+            box-shadow: 0 15px 20px rgba(0, 0, 0, 0.4);
+            border: 1px solid #3f3f46;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 40px;
+        }
+
+        .zest-btn {
+            transition: all 0.2s ease;
+        }
+        .zest-btn:hover {
+            filter: brightness(1.2);
+        }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
-    <div id="app" class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <header class="text-center mb-12">
-            <h1 class="text-5xl md:text-7xl font-black mb-4 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent italic tracking-tighter">
-                WYNN ATLAS <span class="text-slate-600 not-italic">LITE</span>
-            </h1>
-            <p class="text-slate-400 text-lg">Instant Ingredient Database Access</p>
-        </header>
+<body class="min-h-screen custom-scrollbar">
 
-        <!-- Controls -->
-        <div class="mb-8 flex flex-col md:flex-row gap-4">
-            <input type="text" id="searchInput" placeholder="Search ingredients (e.g. Bob's Tear)..." 
-                class="flex-grow bg-slate-900 border border-slate-800 rounded-2xl py-4 px-6 focus:ring-2 focus:ring-cyan-500 outline-none transition-all text-lg shadow-2xl">
-            
-            <select id="tierFilter" class="bg-slate-900 border border-slate-800 rounded-2xl px-8 py-4 outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer shadow-2xl">
-                <option value="all">All Tiers</option>
-                <option value="0">Tier 0</option>
-                <option value="1">Tier 1</option>
-                <option value="2">Tier 2</option>
-                <option value="3">Tier 3</option>
-            </select>
+    <div id="toast">Copied to Clipboard!</div>
+
+    <header class="sticky top-0 z-50 glass-header">
+        <div class="max-w-[1800px] mx-auto px-4 py-2.5">
+            <div class="flex items-center justify-between gap-4">
+                <!-- Branding -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="bg-gradient-to-tr from-indigo-500 to-cyan-500 p-1.5 rounded-lg shadow-lg">
+                        <i class="fas fa-lemon text-white text-sm"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <h1 class="text-sm font-black tracking-tight leading-none text-zinc-100">
+                            Swipu's <span class="text-indigo-400 uppercase">Zestshop</span>
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- Search -->
+                <div class="flex-1 max-w-lg relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 text-xs"></i>
+                    <input 
+                        type="text" 
+                        id="globalSearch"
+                        placeholder="Search items..."
+                        class="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg py-1.5 pl-9 pr-3 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all text-xs text-zinc-100 placeholder:text-zinc-600"
+                    >
+                </div>
+
+                <!-- Filter Toggle -->
+                <button id="toggleFilters" class="zest-btn flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg font-black text-[10px] uppercase tracking-widest text-zinc-400">
+                    <i class="fas fa-sliders-h text-indigo-500"></i>
+                    <span>Filters</span>
+                    <i id="chevron" class="fas fa-chevron-down text-[7px] ml-1 transition-transform"></i>
+                </button>
+            </div>
+
+            <!-- Drawer -->
+            <div id="filterDrawer" class="mt-2 border-t border-zinc-900">
+                <div class="py-4 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="space-y-2">
+                            <label class="block text-[9px] font-black text-zinc-600 uppercase tracking-widest">Level Range</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="minLevel" value="0" class="w-full bg-zinc-950 border border-zinc-800 rounded py-1 px-2 text-[11px] font-bold outline-none">
+                                <input type="number" id="maxLevel" value="100" class="w-full bg-zinc-950 border border-zinc-800 rounded py-1 px-2 text-[11px] font-bold outline-none">
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-[9px] font-black text-zinc-600 uppercase tracking-widest">Tiers</label>
+                            <div class="flex gap-1" id="tierFilters">
+                                <button data-tier="1" class="tier-btn flex-1 py-1 rounded border border-zinc-800 bg-zinc-950 text-[10px] font-black">T1</button>
+                                <button data-tier="2" class="tier-btn flex-1 py-1 rounded border border-zinc-800 bg-zinc-950 text-[10px] font-black">T2</button>
+                                <button data-tier="3" class="tier-btn flex-1 py-1 rounded border border-zinc-800 bg-zinc-950 text-[10px] font-black">T3</button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-[9px] font-black text-zinc-600 uppercase tracking-widest">Professions</label>
+                            <div id="professionFilters" class="flex flex-wrap gap-1 max-h-20 overflow-y-auto pr-1 custom-scrollbar"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                        <select id="posStat1" class="w-full bg-zinc-950 border border-zinc-800 rounded py-1.5 px-2 text-[10px] font-black text-emerald-500 outline-none"><option value="">+ Stat 1</option></select>
+                        <select id="posStat2" class="w-full bg-zinc-950 border border-zinc-800 rounded py-1.5 px-2 text-[10px] font-black text-emerald-500 outline-none"><option value="">+ Stat 2</option></select>
+                        <select id="negStat1" class="w-full bg-zinc-950 border border-zinc-800 rounded py-1.5 px-2 text-[10px] font-black text-rose-500 outline-none"><option value="">- Stat 1</option></select>
+                        <select id="negStat2" class="w-full bg-zinc-950 border border-zinc-800 rounded py-1.5 px-2 text-[10px] font-black text-rose-500 outline-none"><option value="">- Stat 2</option></select>
+                    </div>
+                </div>
+            </div>
         </div>
+    </header>
 
-        <!-- Status -->
-        <div id="status" class="mb-4 text-sm text-slate-500 font-mono italic">Loading ingredients...</div>
+    <main class="max-w-[1800px] mx-auto p-4">
+        <div id="activeTags" class="flex flex-wrap gap-1 mb-4 min-h-[20px]"></div>
 
-        <!-- Results -->
-        <div id="results" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
-    </div>
+        <div id="ingredientGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3"></div>
+
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-32 text-zinc-700">
+            <p class="text-sm font-black uppercase tracking-widest mb-4">No Zest Found</p>
+            <button onclick="clearAllFilters()" class="text-indigo-500 hover:underline text-[10px] font-black uppercase">Reset Filters</button>
+        </div>
+    </main>
 
     <script>
-        // Switched to the Full Item Database endpoint
-        const API_URL = 'https://api.wynncraft.com/v3/item/database?fullResult';
-        let ingredients = [];
+        // Global Data Storage
+        let RAW_DATA = [];
 
-        async function init() {
-            const statusEl = document.getElementById('status');
+        // App State
+        const STATE = {
+            search: "", minLv: 0, maxLv: 100, tiers: new Set(), profs: new Set(),
+            posStat1: "", posStat2: "", negStat1: "", negStat2: "",
+            allProfs: [],
+            allPosStats: [],
+            allNegStats: []
+        };
 
+        /**
+         * Dynamic Data Loading Logic
+         */
+        async function loadShopData() {
             try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('API Error');
-                const data = await response.json();
-                
-                // Convert object to array and filter for objects that contain 'tier' or 'skills'
-                // This identifies crafting ingredients specifically within the full database.
-                const allItems = Object.values(data);
-                ingredients = allItems.filter(item => 
-                    item.type === 'Ingredient' || 
-                    item.isIngredient || 
-                    (item.tier !== undefined && item.skills)
-                );
+                const [ingredientsRes, dropsRes] = await Promise.all([
+                    fetch('ingredients.json'),
+                    fetch('drops.json')
+                ]);
 
-                statusEl.innerText = `Loaded ${ingredients.length} ingredients from full database`;
-                render();
-            } catch (e) {
-                statusEl.innerText = "Error loading data. The Wynncraft API might be down or rate-limited.";
-                console.error(e);
+                if (!ingredientsRes.ok || !dropsRes.ok) {
+                    throw new Error(`HTTP Error: Ingredients(${ingredientsRes.status}), Drops(${dropsRes.status})`);
+                }
+
+                const ingredientsJson = await ingredientsRes.json();
+                const dropsJson = await dropsRes.json();
+
+                processJsonData(ingredientsJson, dropsJson);
+            } catch (error) {
+                console.error("Critical Failure Loading Swipu's Inventory:", error);
+                showToast("Failed to load shop data.");
             }
         }
 
-        function render() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const tier = document.getElementById('tierFilter').value;
-            const container = document.getElementById('results');
-            
-            const filtered = ingredients.filter(ing => {
-                const name = (ing.name || "").toLowerCase();
-                const matchesSearch = name.includes(query);
-                const matchesTier = tier === 'all' || (ing.tier !== undefined && ing.tier == tier);
-                return matchesSearch && matchesTier;
-            });
+        /**
+         * Transformation Engine
+         */
+        function processJsonData(ingredients, dropsMap) {
+            const processed = [];
 
-            container.innerHTML = filtered.map(ing => `
-                <div class="p-5 rounded-xl border transition-all hover:scale-[1.02] tier-${ing.tier || 0} flex flex-col h-full shadow-lg backdrop-blur-sm">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-bold text-lg leading-tight truncate pr-2">${ing.name}</h3>
-                        <div class="text-xs opacity-80 font-black">T${ing.tier || 0}</div>
-                    </div>
-                    <div class="text-[10px] opacity-60 mb-3 uppercase tracking-widest font-bold">
-                        Lv. ${ing.level || ing.lvl || 0} • ${ing.type || 'Ingredient'}
-                    </div>
-                    <div class="space-y-1 text-sm flex-grow">
-                        ${ing.identifications ? Object.entries(ing.identifications).map(([k, v]) => `
-                            <div class="flex justify-between">
-                                <span class="opacity-70 capitalize">${k.replace(/([A-Z])/g, ' $1')}</span>
-                                <span class="font-mono font-bold">${typeof v === 'object' ? (v.min === v.max ? v.min : `${v.min} to ${v.max}`) : v}</span>
-                            </div>
-                        `).join('') : '<div class="opacity-30 italic">No special stats</div>'}
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-current/10 flex flex-wrap gap-1">
-                        ${(ing.skills || []).map(s => `<span class="text-[9px] px-2 py-0.5 rounded-full bg-white/10 font-bold uppercase">${s}</span>`).join('')}
-                    </div>
-                </div>
-            `).join('');
+            for (const [ingName, ingData] of Object.entries(ingredients)) {
+                // Map Ingredient properties
+                const item = {
+                    name: ingName,
+                    tier: ingData.tier,
+                    level: ingData.lvl, // Pull lvl → level
+                    professions: ingData.profs, // Pull profs → professions
+                    stats: ingData.stats || [],
+                    drops: []
+                };
+
+                // Pull drop data if exists
+                const dropEntries = dropsMap[ingName];
+                if (dropEntries && Array.isArray(dropEntries)) {
+                    item.drops = dropEntries.map(d => {
+                        let location = "";
+                        let coords = { x: 0, y: 0, z: 0 };
+
+                        if (d.details) {
+                            location = d.details.location || "";
+                            
+                            // Coordinate Selection Logic
+                            const srcCoords = d.details.coords;
+                            if (srcCoords) {
+                                const checkNonZero = (c) => 
+                                    (c.x !== undefined && Number(c.x) !== 0) || 
+                                    (c.y !== undefined && Number(c.y) !== 0) || 
+                                    (c.z !== undefined && Number(c.z) !== 0);
+
+                                if (Array.isArray(srcCoords)) {
+                                    const valid = srcCoords.find(checkNonZero);
+                                    if (valid) {
+                                        coords = { x: Number(valid.x), y: Number(valid.y), z: Number(valid.z) };
+                                    }
+                                } else if (checkNonZero(srcCoords)) {
+                                    coords = { x: Number(srcCoords.x), y: Number(srcCoords.y), z: Number(srcCoords.z) };
+                                }
+                            }
+                        }
+
+                        return {
+                            type: d.type || "unknown",
+                            name: d.name || "Unknown Source",
+                            location: location,
+                            coords: coords
+                        };
+                    });
+                }
+
+                processed.push(item);
+            }
+
+            // Update Global Reference
+            RAW_DATA = processed;
+
+            // Recompute dynamic state
+            computeDynamicState();
             
-            document.getElementById('status').innerText = `Showing ${filtered.length} ingredients`;
+            // Initial UI Setup and Render
+            initDynamicUI();
+            render();
         }
 
-        document.getElementById('searchInput').addEventListener('input', render);
-        document.getElementById('tierFilter').addEventListener('change', render);
+        function computeDynamicState() {
+            STATE.allProfs = [...new Set(RAW_DATA.flatMap(i => i.professions))].sort();
+            STATE.allPosStats = [...new Set(RAW_DATA.flatMap(i => i.stats.filter(s => s.pos).map(s => s.label)))].sort();
+            STATE.allNegStats = [...new Set(RAW_DATA.flatMap(i => i.stats.filter(s => !s.pos).map(s => s.label)))].sort();
+        }
 
-        init();
+        /**
+         * Dynamic UI Population
+         */
+        function initDynamicUI() {
+            // Populate Professions
+            const profContainer = document.getElementById('professionFilters');
+            profContainer.innerHTML = STATE.allProfs.map(p => 
+                `<button data-prof="${p}" class="prof-chip zest-btn px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[8px] font-black text-zinc-600 uppercase tracking-tighter whitespace-nowrap">${p}</button>`
+            ).join('');
+
+            // Populate Stat Selects
+            const p1 = document.getElementById('posStat1');
+            const p2 = document.getElementById('posStat2');
+            const n1 = document.getElementById('negStat1');
+            const n2 = document.getElementById('negStat2');
+
+            // Reset options
+            [p1, p2, n1, n2].forEach(sel => {
+                const first = sel.options[0].text;
+                sel.innerHTML = `<option value="">${first}</option>`;
+            });
+
+            STATE.allPosStats.forEach(s => {
+                const opt = `<option value="${s}">${s}</option>`;
+                p1.innerHTML += opt;
+                p2.innerHTML += opt;
+            });
+
+            STATE.allNegStats.forEach(s => {
+                const opt = `<option value="${s}">${s}</option>`;
+                n1.innerHTML += opt;
+                n2.innerHTML += opt;
+            });
+        }
+
+        /**
+         * Filtering Logic
+         */
+        function filterData() {
+            const query = STATE.search.toLowerCase();
+            return RAW_DATA.filter(item => {
+                const matchesSearch = !query || 
+                    item.name.toLowerCase().includes(query) || 
+                    item.professions.some(p => p.toLowerCase().includes(query)) || 
+                    item.stats.some(s => s.label.toLowerCase().includes(query));
+
+                const matchesLevel = item.level >= STATE.minLv && item.level <= STATE.maxLv;
+                const matchesTier = STATE.tiers.size === 0 || STATE.tiers.has(item.tier.toString());
+                const matchesProf = STATE.profs.size === 0 || item.professions.some(p => STATE.profs.has(p));
+                
+                const hasPos1 = !STATE.posStat1 || item.stats.some(s => s.label === STATE.posStat1 && s.pos);
+                const hasPos2 = !STATE.posStat2 || item.stats.some(s => s.label === STATE.posStat2 && s.pos);
+                const hasNeg1 = !STATE.negStat1 || item.stats.some(s => s.label === STATE.negStat1 && !s.pos);
+                const hasNeg2 = !STATE.negStat2 || item.stats.some(s => s.label === STATE.negStat2 && !s.pos);
+
+                return matchesSearch && matchesLevel && matchesTier && matchesProf && hasPos1 && hasPos2 && hasNeg1 && hasNeg2;
+            });
+        }
+
+        /**
+         * Render Layer
+         */
+        function render() {
+            const grid = document.getElementById('ingredientGrid');
+            const data = filterData();
+            
+            if (data.length === 0) {
+                grid.innerHTML = "";
+                document.getElementById('emptyState').classList.remove('hidden');
+            } else {
+                document.getElementById('emptyState').classList.add('hidden');
+                grid.innerHTML = data.map((item, idx) => `
+                    <div class="zest-card rounded-xl p-3 flex flex-col gap-3">
+                        <div class="flex justify-between items-start gap-1">
+                            <div class="overflow-hidden">
+                                <h3 class="text-[11px] font-black text-white truncate leading-tight uppercase tracking-tight">${item.name}</h3>
+                                <div class="flex items-center gap-1.5 mt-1">
+                                    <span class="text-[8px] font-black text-indigo-400 bg-indigo-500/10 px-1 py-0.5 rounded leading-none">LV ${item.level}</span>
+                                    <div class="flex gap-0.5">
+                                        ${Array(item.tier).fill(0).map(() => `<i class="fas fa-star text-amber-500 text-[7px]"></i>`).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3">
+                            <div class="space-y-1">
+                                <p class="text-[8px] font-black text-zinc-700 uppercase tracking-widest border-b border-zinc-800 pb-1 mb-1">Stats</p>
+                                ${item.stats.map(s => `
+                                    <div class="flex justify-between text-[10px] font-bold leading-none py-0.5">
+                                        <span class="text-zinc-500 truncate pr-1">${s.label}</span>
+                                        <span class="${s.pos ? 'stat-pos' : 'stat-neg'} shrink-0">${s.value}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <div class="space-y-1">
+                                <p class="text-[8px] font-black text-zinc-700 uppercase tracking-widest border-b border-zinc-800 pb-1 mb-1">Source</p>
+                                ${item.drops.length === 0 ? `<p class="text-[8px] italic text-zinc-800">No known drops</p>` : item.drops.map(drop => `
+                                    <div class="text-[9px] space-y-1 leading-tight">
+                                        <p class="text-zinc-300 font-bold truncate">${drop.name}</p>
+                                        <div 
+                                            onclick="copyToClipboard('${drop.coords.x}', '${drop.coords.z}')"
+                                            class="inline-flex items-center gap-1.5 bg-zinc-950 hover:bg-zinc-800 hover:text-white px-1.5 py-1 rounded cursor-pointer transition-all font-mono text-zinc-500 border border-zinc-900"
+                                        >
+                                            <i class="fas fa-crosshairs text-[8px] text-indigo-500"></i>
+                                            <span class="text-[8px] font-black">${drop.coords.x}, ${drop.coords.z}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="mt-auto pt-2 border-t border-zinc-800 flex flex-wrap gap-1">
+                            ${item.professions.map(p => `
+                                <span class="text-[7px] text-zinc-600 font-black px-1 py-0.5 rounded bg-zinc-950 border border-zinc-900 uppercase tracking-tight">${p}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            renderTags();
+        }
+
+        function renderTags() {
+            const container = document.getElementById('activeTags');
+            const tags = [];
+            if (STATE.search) tags.push({ id: 'search', label: `${STATE.search}` });
+            if (STATE.minLv > 0 || STATE.maxLv < 100) tags.push({ id: 'lv', label: `L${STATE.minLv}-${STATE.maxLv}` });
+            STATE.tiers.forEach(t => tags.push({ id: `tier-${t}`, label: `T${t}` }));
+            STATE.profs.forEach(p => tags.push({ id: `prof-${p}`, label: p }));
+            if (STATE.posStat1) tags.push({ id: 'posStat1', label: `+${STATE.posStat1}` });
+            if (STATE.posStat2) tags.push({ id: 'posStat2', label: `+${STATE.posStat2}` });
+            if (STATE.negStat1) tags.push({ id: 'negStat1', label: `-${STATE.negStat1}` });
+            if (STATE.negStat2) tags.push({ id: 'negStat2', label: `-${STATE.negStat2}` });
+
+            container.innerHTML = tags.map(t => `
+                <div class="flex items-center gap-1.5 px-2 py-0.5 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded text-[8px] font-black uppercase tracking-widest">
+                    ${t.label}
+                    <button onclick="removeFilter('${t.id}')" class="hover:text-indigo-500 transition-colors"><i class="fas fa-times"></i></button>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * Clipboard and Feedback Utilities
+         */
+        function copyToClipboard(x, z) {
+            const command = `/compass ${x},${z}`;
+            const textArea = document.createElement("textarea");
+            textArea.value = command;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast(`COPIED COMPASS: ${x}, ${z}`);
+            } catch (err) {}
+            document.body.removeChild(textArea);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 1500);
+        }
+
+        /**
+         * Filter Interactions
+         */
+        function removeFilter(id) {
+            if (id === 'search') { STATE.search = ""; document.getElementById('globalSearch').value = ""; }
+            else if (id === 'lv') { STATE.minLv = 0; STATE.maxLv = 100; document.getElementById('minLevel').value = 0; document.getElementById('maxLevel').value = 100; }
+            else if (id.startsWith('tier-')) { 
+                const t = id.split('-')[1]; 
+                STATE.tiers.delete(t); 
+                document.querySelector(`.tier-btn[data-tier="${t}"]`).classList.remove('bg-indigo-600', 'text-white'); 
+            }
+            else if (id.startsWith('prof-')) { 
+                const p = id.split('-')[1]; 
+                STATE.profs.delete(p); 
+                const chip = document.querySelector(`.prof-chip[data-prof="${p}"]`); 
+                if (chip) chip.classList.remove('bg-indigo-600', 'text-white'); 
+            }
+            else if (id.startsWith('posStat') || id.startsWith('negStat')) { 
+                STATE[id] = ""; 
+                document.getElementById(id).value = ""; 
+            }
+            render();
+        }
+
+        function clearAllFilters() {
+            STATE.search = ""; STATE.minLv = 0; STATE.maxLv = 100; STATE.tiers.clear(); STATE.profs.clear();
+            STATE.posStat1 = ""; STATE.posStat2 = ""; STATE.negStat1 = ""; STATE.negStat2 = "";
+            document.getElementById('globalSearch').value = "";
+            document.getElementById('minLevel').value = 0; document.getElementById('maxLevel').value = 100;
+            document.querySelectorAll('.tier-btn, .prof-chip').forEach(el => el.classList.remove('bg-indigo-600', 'text-white'));
+            document.querySelectorAll('select').forEach(s => s.value = "");
+            render();
+        }
+
+        /**
+         * Initialization
+         */
+        window.addEventListener('DOMContentLoaded', () => {
+            // Start Async Load
+            loadShopData();
+
+            // Setup persistent listeners
+            document.getElementById('toggleFilters').addEventListener('click', () => {
+                const isOpen = document.getElementById('filterDrawer').classList.toggle('open');
+                document.getElementById('chevron').style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
+
+            document.getElementById('globalSearch').addEventListener('input', e => { STATE.search = e.target.value; render(); });
+            document.getElementById('minLevel').addEventListener('input', e => { STATE.minLv = parseInt(e.target.value || 0); render(); });
+            document.getElementById('maxLevel').addEventListener('input', e => { STATE.maxLv = parseInt(e.target.value || 100); render(); });
+
+            ['posStat1', 'posStat2', 'negStat1', 'negStat2'].forEach(id => {
+                document.getElementById(id).addEventListener('change', e => { STATE[id] = e.target.value; render(); });
+            });
+
+            document.querySelectorAll('.tier-btn').forEach(b => b.addEventListener('click', () => {
+                const t = b.dataset.tier;
+                if (STATE.tiers.has(t)) STATE.tiers.delete(t); else STATE.tiers.add(t);
+                b.classList.toggle('bg-indigo-600'); b.classList.toggle('text-white'); render();
+            }));
+
+            document.getElementById('professionFilters').addEventListener('click', e => {
+                const b = e.target.closest('.prof-chip'); 
+                if (!b) return;
+                const p = b.dataset.prof; 
+                if (STATE.profs.has(p)) STATE.profs.delete(p); else STATE.profs.add(p);
+                b.classList.toggle('bg-indigo-600'); b.classList.toggle('text-white'); render();
+            });
+        });
     </script>
 </body>
 </html>
