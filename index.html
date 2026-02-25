@@ -206,9 +206,9 @@
                     <i class="fas fa-database text-white text-3xl"></i>
                 </div>
                 <h1 class="text-3xl lg:text-6xl font-black tracking-tighter leading-tight text-custom-main uppercase">
-                    Brought To You By <span class="animated-title">Imperial</span>
+                    Library of <span class="animated-title">Imperial</span>
                 </h1>
-                <p class="text-[11px] font-black text-indigo-400 uppercase tracking-[0.5em] mt-1">The Great Database</p>
+                <p class="text-[11px] font-black text-indigo-400 uppercase tracking-[0.5em] mt-1">Work In Progress</p>
             </div>
 
             <!-- Dashboard Interaction Row -->
@@ -302,6 +302,10 @@
 
     <main class="max-w-[1700px] mx-auto p-6 lg:p-10">
         <div id="activeTags" class="flex flex-wrap gap-2 mb-10 min-h-[30px]"></div>
+        
+        <!-- Results Counter for UX -->
+        <div id="resultsInfo" class="mb-4 text-[10px] font-black uppercase tracking-widest text-custom-dim hidden"></div>
+
         <div id="ingredientGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
 
         <div id="emptyState" class="hidden flex flex-col items-center justify-center py-48 text-custom-dim">
@@ -345,7 +349,9 @@
             allProfs: [], allPosStats: [], allNegStats: []
         };
 
-        // Utility to prevent heavy re-renders during rapid typing
+        // Utility: Finite Number Check
+        const isNum = (v) => v !== null && v !== undefined && v !== "" && isFinite(Number(v));
+
         function debounce(func, wait) {
             let timeout;
             return function(...args) {
@@ -389,15 +395,13 @@
                     
                     if (d.details && d.details.coords) {
                         const rawCoords = d.details.coords;
-                        const checkNonZero = (c) => Number(c.x) !== 0 || Number(c.z) !== 0;
+                        const hasXandZ = (c) => isNum(c.x) && isNum(c.z);
 
                         const addCoord = (c) => {
-                            if (checkNonZero(c)) {
-                                // Logic: Condition Y values. If undefined/empty, treat as null.
-                                const cleanY = (c.y !== undefined && c.y !== null && c.y !== "") ? Number(c.y) : null;
+                            if (hasXandZ(c)) {
+                                const cleanY = isNum(c.y) ? Number(c.y) : null;
                                 const coordObj = { x: Number(c.x), y: cleanY, z: Number(c.z) };
                                 const coordStr = `${coordObj.x},${coordObj.y},${coordObj.z}`;
-                                
                                 if (!sharedTelemetry[mobKey].find(existing => `${existing.x},${existing.y},${existing.z}` === coordStr)) {
                                     sharedTelemetry[mobKey].push(coordObj);
                                 }
@@ -410,10 +414,7 @@
                 });
             });
 
-            const allKeys = new Set([
-                ...Object.keys(normIngredients),
-                ...Object.keys(normDrops)
-            ]);
+            const allKeys = new Set([...Object.keys(normIngredients), ...Object.keys(normDrops)]);
 
             for (const key of allKeys) {
                 const ingData = normIngredients[key] || {};
@@ -425,24 +426,31 @@
                     level: ingData.lvl || 0,
                     professions: ingData.profs || [],
                     stats: ingData.stats || [],
-                    drops: []
+                    drops: [],
+                    searchStr: "" // Will index this next
                 };
 
                 if (Array.isArray(dropEntries)) {
                     item.drops = dropEntries.map(d => {
-                        let loc = d.details ? (d.details.location || "") : "";
-                        let screenshots = d.details ? (d.details.screenshots || "") : "";
                         const mobKey = (d.name || "").trim().toLowerCase();
-                        let validCoords = sharedTelemetry[mobKey] || [];
-
                         return { 
                             name: d.name || "Unknown Source", 
-                            location: loc, 
-                            allCoords: validCoords,
-                            screenshots: screenshots 
+                            location: d.details ? (d.details.location || "") : "", 
+                            allCoords: sharedTelemetry[mobKey] || [],
+                            screenshots: d.details ? (d.details.screenshots || "") : "" 
                         };
                     });
                 }
+
+                // --- SEARCH PRE-INDEXING (Performance Boost) ---
+                const searchParts = [
+                    item.name,
+                    ...item.professions,
+                    ...item.stats.map(s => s.label),
+                    ...item.drops.map(d => d.name + ' ' + d.location)
+                ];
+                item.searchStr = searchParts.join(' ').toLowerCase();
+
                 processed.push(item);
             }
 
@@ -461,7 +469,6 @@
         function initDynamicUI() {
             const profContainer = document.getElementById('professionFilters');
             profContainer.innerHTML = STATE.allProfs.map(p => `<button data-prof="${p}" class="prof-chip zest-btn px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap">${p}</button>`).join('');
-            
             const ps = document.getElementById('posStat1');
             const ns = document.getElementById('negStat1');
             ps.innerHTML = '<option value="">Stat 1</option>';
@@ -473,12 +480,7 @@
         function filterData() {
             const query = STATE.search.toLowerCase().trim();
             const filtered = RAW_DATA.filter(item => {
-                const matchesSearch = !query || 
-                    item.name.toLowerCase().includes(query) || 
-                    item.professions.some(p => p.toLowerCase().includes(query)) || 
-                    item.stats.some(s => s.label.toLowerCase().includes(query)) ||
-                    item.drops.some(d => d.name.toLowerCase().includes(query) || d.location.toLowerCase().includes(query));
-
+                const matchesSearch = !query || item.searchStr.includes(query);
                 const matchesLevel = item.level >= STATE.minLv && item.level <= STATE.maxLv;
                 const matchesTier = STATE.tiers.size === 0 || STATE.tiers.has(item.tier.toString());
                 const matchesProf = STATE.profs.size === 0 || item.professions.some(p => STATE.profs.has(p));
@@ -490,15 +492,7 @@
                 return matchesSearch && matchesLevel && matchesTier && matchesProf && matchesStatP && matchesStatN && matchesInterest && matchesCoords;
             });
 
-            const anyFilterActive = STATE.search !== "" || 
-                                   STATE.tiers.size > 0 || 
-                                   STATE.profs.size > 0 || 
-                                   STATE.interestOnly || 
-                                   STATE.coordsOnly || 
-                                   STATE.minLv !== 0 || 
-                                   STATE.maxLv !== 115 || 
-                                   STATE.posStat1 !== "" || 
-                                   STATE.negStat1 !== "";
+            const anyFilterActive = STATE.search !== "" || STATE.tiers.size > 0 || STATE.profs.size > 0 || STATE.interestOnly || STATE.coordsOnly || STATE.minLv !== 0 || STATE.maxLv !== 115 || STATE.posStat1 !== "" || STATE.negStat1 !== "";
 
             if (!anyFilterActive) {
                 return filtered.sort(() => 0.5 - Math.random()).slice(0, 50);
@@ -509,7 +503,23 @@
 
         function render() {
             const grid = document.getElementById('ingredientGrid');
-            const data = filterData();
+            const info = document.getElementById('resultsInfo');
+            const rawResults = filterData();
+            
+            // --- VIRTUAL CLAMPING (Lag Fix) ---
+            // Only render the first 60 results to prevent DOM bloat
+            const renderLimit = 60;
+            const data = rawResults.slice(0, renderLimit);
+            
+            if (rawResults.length > 0) {
+                info.classList.remove('hidden');
+                info.textContent = rawResults.length > renderLimit 
+                    ? `Showing ${renderLimit} of ${rawResults.length} records (Alphabetical)` 
+                    : `Displaying ${rawResults.length} matching records`;
+            } else {
+                info.classList.add('hidden');
+            }
+
             if (data.length === 0) {
                 grid.innerHTML = "";
                 document.getElementById('emptyState').classList.remove('hidden');
@@ -549,7 +559,7 @@
                                         <div class="flex justify-between items-start gap-2">
                                             <div class="overflow-hidden">
                                                 <p class="text-custom-main font-bold text-xs truncate leading-tight">${drop.name}</p>
-                                                <p class="text-custom-dim text-[8px] font-bold uppercase tracking-tight truncate">${drop.location || 'Deep Space'}</p>
+                                                <p class="text-custom-dim text-[8px] font-bold uppercase tracking-tight truncate">${drop.location || 'Unknown Orbit'}</p>
                                             </div>
                                             ${mainScreenshot ? `
                                                 <a href="${mainScreenshot}" target="_blank" class="zest-btn p-2 rounded-lg !bg-pink-500 !text-white !border-pink-400 text-[10px] shadow-sm hover:scale-110 transition-transform" title="Intel View">
@@ -558,11 +568,11 @@
                                             ` : ''}
                                         </div>
                                         ${drop.allCoords.map(c => {
-                                            // Handle display: if Y is null, only show X, Z
-                                            const displayLabel = (c.y !== null && !isNaN(c.y)) ? `${c.x}, ${c.y}, ${c.z}` : `${c.x}, ${c.z}`;
+                                            const hasY = isNum(c.y);
+                                            const displayLabel = hasY ? `${c.x}, ${c.y}, ${c.z}` : `${c.x}, ${c.z}`;
                                             return `
                                             <div 
-                                                onclick="copyToClipboard('${c.x}', ${c.y}, '${c.z}')"
+                                                onclick="copyToClipboard('${c.x}', ${hasY ? c.y : 'null'}, '${c.z}')"
                                                 class="zest-btn flex items-center justify-center gap-2 bg-indigo-600 !border-indigo-400 !text-white hover:bg-indigo-500 px-3 py-2 rounded-lg cursor-pointer shadow-md group mt-1"
                                             >
                                                 <i class="fas fa-crosshairs text-base group-hover:rotate-90 transition-transform"></i>
@@ -594,21 +604,12 @@
             if (STATE.minLv > 0 || STATE.maxLv < 115) tags.push({ id: 'lv', label: `L${STATE.minLv}-${STATE.maxLv}` });
             STATE.tiers.forEach(t => tags.push({ id: `tier-${t}`, label: `T${t}` }));
             STATE.profs.forEach(p => tags.push({ id: `prof-${p}`, label: p }));
-
-            container.innerHTML = tags.map(t => `
-                <div class="flex items-center gap-2 px-3 py-1.5 bg-custom-card border border-custom text-custom-main rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md">
-                    ${t.label}
-                    <button onclick="removeFilter('${t.id}')" class="hover:text-indigo-400 transition-colors"><i class="fas fa-times"></i></button>
-                </div>
-            `).join('');
+            container.innerHTML = tags.map(t => `<div class="flex items-center gap-2 px-3 py-1.5 bg-custom-card border border-custom text-custom-main rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md">${t.label}<button onclick="removeFilter('${t.id}')" class="hover:text-indigo-400 transition-colors"><i class="fas fa-times"></i></button></div>`).join('');
         }
 
         function copyToClipboard(x, y, z) {
-            // Logic: if y is null, prefix /compass x, z. Else x, y, z.
-            const command = (y !== 'null' && y !== null && !isNaN(y)) 
-                ? `/compass ${x}, ${y}, ${z}` 
-                : `/compass ${x}, ${z}`;
-
+            // Strict condition for clipboard command
+            const command = (isNum(y)) ? `/compass ${x}, ${y}, ${z}` : `/compass ${x}, ${z}`;
             const ta = document.createElement("textarea");
             ta.value = command; ta.style.position = "fixed"; ta.style.left = "-9999px";
             document.body.appendChild(ta); ta.select();
@@ -623,39 +624,29 @@
         }
 
         function toggleTheme() {
-            const body = document.body;
             const icon = document.getElementById('themeIcon');
             if (STATE.theme === "dark") {
-                STATE.theme = "light";
-                body.classList.add('light');
-                icon.classList.remove('fa-moon');
-                icon.classList.add('fa-sun');
+                STATE.theme = "light"; document.body.classList.add('light');
+                icon.classList.replace('fa-moon', 'fa-sun');
             } else {
-                STATE.theme = "dark";
-                body.classList.remove('light');
-                icon.classList.remove('fa-sun');
-                icon.classList.add('fa-moon');
+                STATE.theme = "dark"; document.body.classList.remove('light');
+                icon.classList.replace('fa-sun', 'fa-moon');
             }
         }
 
         function handleScroll() {
             const header = document.getElementById('mainHeader');
             const content = document.getElementById('headerContent');
-            const drawer = document.getElementById('filterDrawer');
-            const chevron = document.getElementById('chevron');
-
             if (window.scrollY > 50) {
                 header.classList.add('compact');
-                content.classList.remove('py-6');
-                content.classList.add('py-2');
-                if (drawer.classList.contains('open')) {
-                    drawer.classList.remove('open');
-                    chevron.style.transform = 'rotate(0deg)';
+                content.classList.replace('py-6', 'py-2');
+                if (document.getElementById('filterDrawer').classList.contains('open')) {
+                    document.getElementById('filterDrawer').classList.remove('open');
+                    document.getElementById('chevron').style.transform = 'rotate(0deg)';
                 }
             } else {
                 header.classList.remove('compact');
-                content.classList.remove('py-2');
-                content.classList.add('py-6');
+                content.classList.replace('py-2', 'py-6');
             }
         }
 
@@ -664,18 +655,8 @@
             else if (id === 'interest') { STATE.interestOnly = false; document.getElementById('interestToggle').classList.remove('active'); }
             else if (id === 'coords') { STATE.coordsOnly = false; document.getElementById('coordsToggle').classList.remove('active'); }
             else if (id === 'lv') { STATE.minLv = 0; STATE.maxLv = 115; document.getElementById('minLevel').value = 0; document.getElementById('maxLevel').value = 115; }
-            else if (id.startsWith('tier-')) { 
-                const t = id.split('-')[1]; 
-                STATE.tiers.delete(t); 
-                const btn = document.querySelector(`.tier-btn[data-tier="${t}"]`);
-                if (btn) btn.classList.remove('bg-indigo-600', 'text-white');
-            }
-            else if (id.startsWith('prof-')) { 
-                const p = id.split('-')[1]; 
-                STATE.profs.delete(p); 
-                const chip = document.querySelector(`.prof-chip[data-prof="${p}"]`); 
-                if (chip) chip.classList.remove('bg-indigo-600', 'text-white'); 
-            }
+            else if (id.startsWith('tier-')) { const t = id.split('-')[1]; STATE.tiers.delete(t); const btn = document.querySelector(`.tier-btn[data-tier="${t}"]`); if (btn) btn.classList.remove('bg-indigo-600', 'text-white'); }
+            else if (id.startsWith('prof-')) { const p = id.split('-')[1]; STATE.profs.delete(p); const chip = document.querySelector(`.prof-chip[data-prof="${p}"]`); if (chip) chip.classList.remove('bg-indigo-600', 'text-white'); }
             render();
         }
 
@@ -685,8 +666,7 @@
             document.getElementById('globalSearch').value = "";
             document.getElementById('interestToggle').classList.remove('active');
             document.getElementById('coordsToggle').classList.remove('active');
-            document.getElementById('minLevel').value = 0;
-            document.getElementById('maxLevel').value = 115;
+            document.getElementById('minLevel').value = 0; document.getElementById('maxLevel').value = 115;
             document.querySelectorAll('.tier-btn, .prof-chip').forEach(el => el.classList.remove('bg-indigo-600', 'text-white'));
             document.querySelectorAll('select').forEach(s => s.value = "");
             render();
@@ -699,38 +679,16 @@
             document.getElementById('toggleFilters').addEventListener('click', () => {
                 const isOpen = document.getElementById('filterDrawer').classList.toggle('open');
                 document.getElementById('chevron').style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-                if (isOpen && window.scrollY < 50) {
-                    document.getElementById('mainHeader').classList.remove('compact');
-                }
             });
 
-            // Debounced Search listener to fix input lag
-            const performSearch = debounce((val) => {
-                STATE.search = val;
-                render();
-            }, 250);
-
-            document.getElementById('globalSearch').addEventListener('input', e => { 
-                performSearch(e.target.value); 
-            });
-
+            const performSearch = debounce((val) => { STATE.search = val; render(); }, 250);
+            document.getElementById('globalSearch').addEventListener('input', e => performSearch(e.target.value));
             document.getElementById('minLevel').addEventListener('input', e => { STATE.minLv = parseInt(e.target.value || 0); render(); });
             document.getElementById('maxLevel').addEventListener('input', e => { STATE.maxLv = parseInt(e.target.value || 115); render(); });
             document.getElementById('posStat1').addEventListener('change', e => { STATE.posStat1 = e.target.value; render(); });
             document.getElementById('negStat1').addEventListener('change', e => { STATE.negStat1 = e.target.value; render(); });
-            
-            document.getElementById('interestToggle').addEventListener('click', e => {
-                STATE.interestOnly = !STATE.interestOnly;
-                e.target.classList.toggle('active', STATE.interestOnly);
-                render();
-            });
-
-            document.getElementById('coordsToggle').addEventListener('click', e => {
-                STATE.coordsOnly = !STATE.coordsOnly;
-                e.target.classList.toggle('active', STATE.coordsOnly);
-                render();
-            });
-
+            document.getElementById('interestToggle').addEventListener('click', e => { STATE.interestOnly = !STATE.interestOnly; e.target.classList.toggle('active', STATE.interestOnly); render(); });
+            document.getElementById('coordsToggle').addEventListener('click', e => { STATE.coordsOnly = !STATE.coordsOnly; e.target.classList.toggle('active', STATE.coordsOnly); render(); });
             document.querySelectorAll('.tier-btn').forEach(b => b.addEventListener('click', () => {
                 const t = b.dataset.tier; if (STATE.tiers.has(t)) STATE.tiers.delete(t); else STATE.tiers.add(t);
                 b.classList.toggle('bg-indigo-600'); b.classList.toggle('text-white'); render();
