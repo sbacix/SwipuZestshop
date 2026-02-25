@@ -47,11 +47,11 @@
     </div>
 
     <script>
-        const API_URL = 'https://api.wynncraft.com/v3/item/database?fullResult';
+        // Updated to the official ingredient search endpoint
+        const API_URL = 'https://api.wynncraft.com/v3/ingredient/search/all';
         let ingredients = [];
 
         async function init() {
-            const resultsEl = document.getElementById('results');
             const statusEl = document.getElementById('status');
 
             try {
@@ -59,15 +59,14 @@
                 if (!response.ok) throw new Error('API Error');
                 const data = await response.json();
                 
-                // Filter for ingredients
-                ingredients = Object.values(data).filter(item => 
-                    item.type === 'Ingredient' || item.isIngredient || (item.skills && item.skills.length > 0)
-                );
+                // The /v3/ingredient/search/all endpoint returns an object where keys are names
+                // or an array depending on the exact v3 sub-version. We handle both.
+                ingredients = Array.isArray(data) ? data : Object.values(data);
 
                 statusEl.innerText = `Loaded ${ingredients.length} ingredients`;
                 render();
             } catch (e) {
-                statusEl.innerText = "Error loading data. Check your connection.";
+                statusEl.innerText = "Error loading data. The Wynncraft API might be down or rate-limited.";
                 console.error(e);
             }
         }
@@ -78,8 +77,9 @@
             const container = document.getElementById('results');
             
             const filtered = ingredients.filter(ing => {
-                const matchesSearch = ing.name.toLowerCase().includes(query);
-                const matchesTier = tier === 'all' || ing.tier == tier;
+                const name = (ing.name || "").toLowerCase();
+                const matchesSearch = name.includes(query);
+                const matchesTier = tier === 'all' || (ing.tier !== undefined && ing.tier == tier);
                 return matchesSearch && matchesTier;
             });
 
@@ -90,13 +90,13 @@
                         <div class="text-xs opacity-80 font-black">T${ing.tier || 0}</div>
                     </div>
                     <div class="text-[10px] opacity-60 mb-3 uppercase tracking-widest font-bold">
-                        Lv. ${ing.lvl || ing.level || 0} • ${ing.type || 'Ingredient'}
+                        Lv. ${ing.level || 0} • ${ing.isIngredient ? 'Ingredient' : 'Material'}
                     </div>
                     <div class="space-y-1 text-sm flex-grow">
                         ${ing.identifications ? Object.entries(ing.identifications).map(([k, v]) => `
                             <div class="flex justify-between">
                                 <span class="opacity-70 capitalize">${k.replace(/([A-Z])/g, ' $1')}</span>
-                                <span class="font-mono font-bold">${typeof v === 'object' ? `${v.min}%` : v}</span>
+                                <span class="font-mono font-bold">${typeof v === 'object' ? (v.min === v.max ? v.min : `${v.min} to ${v.max}`) : v}</span>
                             </div>
                         `).join('') : '<div class="opacity-30 italic">No special stats</div>'}
                     </div>
